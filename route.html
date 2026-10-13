@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Интерактивный маршрут по памятным местам Зеренды">
+  <meta name="theme-color" content="#0c604e">
+  <title>Зеренда на ладони — интерактивный маршрут</title>
+  <style>
+    :root{
+      --forest:#0c604e;
+      --forest-dark:#073e35;
+      --lake:#168fa8;
+      --sky:#8ddcea;
+      --gold:#f2b640;
+      --cream:#fff9eb;
+      --paper:#fff;
+      --ink:#16352f;
+      --muted:#60736f;
+      --line:#c8e2da;
+      --danger:#b33b32;
+      --shadow:0 18px 50px rgba(7,62,53,.16);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      min-height:100vh;
+      color:var(--ink);
+      font-family:"Segoe UI",Arial,sans-serif;
+      background:linear-gradient(180deg,#dff7fb,#edf8ed 54%,#fff6df);
+    }
+    button,a,input{font:inherit}
+    button{cursor:pointer}
+    .topbar{
+      padding:16px clamp(14px,4vw,48px);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:14px;
+      flex-wrap:wrap;
+      color:#fff;
+      background:linear-gradient(115deg,var(--forest-dark),var(--lake));
+      box-shadow:0 5px 20px rgba(8,64,56,.18);
+    }
+    .brand h1{margin:0;font-size:clamp(28px,4vw,48px);line-height:1.05}
+    .brand p{margin:5px 0 0;font-size:16px;opacity:.9}
+    .top-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .top-actions a,.top-actions button{
+      border:1px solid rgba(255,255,255,.32);
+      border-radius:11px;
+      padding:10px 13px;
+      color:#fff;
+      background:rgba(255,255,255,.12);
+      text-decoration:none;
+    }
+    .route-shell{width:min(1280px,100%);margin:auto;padding:22px}
+    .intro{
+      display:grid;
+      grid-template-columns:minmax(250px,.8fr) minmax(420px,1.8fr);
+      gap:18px;
+      align-items:stretch;
+    }
+    .guide,.map,.detail,.quiz,.materials{
+      background:rgba(255,255,255,.94);
+      border:1px solid rgba(12,96,78,.15);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+    }
+    .guide{padding:20px}
+    .eyebrow{color:var(--lake);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:12px}
+    .avatars{display:flex;gap:10px;margin:15px 0}
+    .avatar{
+      width:76px;height:76px;border-radius:50%;display:grid;place-items:center;
+      border:5px solid #fff;box-shadow:0 7px 18px rgba(35,72,60,.2);
+      background:linear-gradient(145deg,#ffd480,#ef8aa1);color:#6c3042;font-size:24px;font-weight:700;
+      opacity:.43;transform:scale(.88);transition:.2s;overflow:hidden;position:relative;
+    }
+    .avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .avatar:nth-child(2){background:linear-gradient(145deg,#99e5d4,#87bee9);color:#174e64}
+    .avatar.active{opacity:1;transform:scale(1)}
+    .guide h2{margin:6px 0;font-size:25px}
+    .speech{padding:15px;border-radius:16px;background:#e9f8f2;font-size:17px;line-height:1.5}
+    .guide small{display:block;margin-top:12px;color:var(--muted);line-height:1.4}
+    .map{
+      min-height:410px;
+      position:relative;
+      padding:24px;
+      overflow:hidden;
+      color:#0a4d4f;
+      background:
+        radial-gradient(circle at 78% 14%,rgba(255,239,146,.95) 0 7%,transparent 7.5%),
+        linear-gradient(180deg,#95ddea 0 38%,#d8efda 38% 60%,#67ad82 60% 76%,#2fa2bd 76%);
+    }
+    .map:before{
+      content:"";position:absolute;left:-5%;right:-5%;bottom:20%;height:44%;
+      background:#4e9670;opacity:.92;
+      clip-path:polygon(0 78%,15% 38%,27% 66%,42% 18%,58% 61%,73% 31%,88% 59%,100% 34%,100% 100%,0 100%);
+    }
+    .map:after{
+      content:"";position:absolute;left:-8%;right:-8%;bottom:-27%;height:47%;border-radius:50% 50% 0 0;
+      background:linear-gradient(180deg,#50bdd0,#147e9d);
+    }
+    .map-heading,.route-line,.stops,.map-caption{position:relative;z-index:2}
+    .map-heading h2{margin:0;font-size:28px}
+    .map-heading p{margin:4px 0 0;font-size:15px}
+    .route-line{
+      position:absolute;left:7%;right:7%;top:53%;height:8px;border-radius:99px;
+      background:repeating-linear-gradient(90deg,#fff 0 16px,transparent 16px 27px);
+      filter:drop-shadow(0 3px 2px rgba(0,0,0,.2));
+    }
+    .stops{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:130px}
+    .stop{border:0;background:transparent;color:#16483f;display:grid;justify-items:center;gap:9px;min-width:0}
+    .pin{
+      width:62px;height:62px;border-radius:50% 50% 50% 15px;transform:rotate(-45deg);
+      display:grid;place-items:center;color:#fff;background:var(--forest);border:4px solid #fff;
+      box-shadow:0 8px 17px rgba(0,0,0,.24);font-size:23px;transition:.2s;
+    }
+    .pin span{transform:rotate(45deg)}
+    .stop.active .pin{background:#ef8c2f;transform:rotate(-45deg) scale(1.13)}
+    .stop-name{padding:7px;border-radius:9px;background:rgba(255,255,255,.9);font-weight:700;font-size:12px;line-height:1.2;text-align:center}
+    .map-caption{position:absolute;left:22px;right:22px;bottom:17px;color:#fff;display:flex;justify-content:space-between;gap:12px;font-size:14px}
+    .map-caption strong{font-size:16px}
+    .content-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:18px;align-items:start}
+    .detail{padding:22px}
+    .detail-head{display:flex;justify-content:space-between;gap:12px;align-items:start;flex-wrap:wrap}
+    .detail h2{margin:5px 0 7px;font-size:30px}
+    .detail p{margin:0;color:var(--muted);font-size:17px;line-height:1.55}
+    .number{display:inline-flex;padding:7px 10px;border-radius:999px;color:#fff;background:var(--forest);font-size:13px;font-weight:700}
+    .media-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 12px}
+    .media-tab{border:0;border-radius:10px;padding:10px 13px;color:#17667b;background:#e8f7fb;font-weight:700}
+    .media-tab.active{color:#fff;background:var(--lake)}
+    .media-box{
+      min-height:280px;border-radius:18px;overflow:hidden;display:grid;place-items:center;text-align:center;
+      padding:18px;color:#fff;background:linear-gradient(145deg,#174f45,#1689a0);
+    }
+    .media-box img,
+.media-box video {
+  width:100%;
+  max-height:500px;
+  object-fit:contain;
+  border-radius:12px;
+}
+
+.media-box embed {
+  width:100%;
+  height:650px;
+  max-height:none;
+  border-radius:12px;
+  background:white;
+}
+    .media-box audio{
+  width:min(520px,100%)
+}
+
+.media-box embed{
+  width:100%;
+  height:650px;
+  max-height:none;
+  border-radius:12px;
+  background:white;
+}
+
+.media-box:has(embed){
+  min-height:680px;
+  padding:10px;
+}
+
+.media-placeholder{max-width:340px}
+.media-placeholder .icon{font-size:50px;display:block;margin-bottom:8px}
+.media-placeholder strong{font-size:21px}
+.media-placeholder p{margin:7px 0 0;color:rgba(255,255,255,.84);font-size:15px}
+    .file-preview input{position:absolute;width:1px;height:1px;opacity:0}
+    .side-stack{display:grid;gap:18px}
+    .quiz,.materials{padding:20px}
+    .quiz h2,.materials h2{margin:4px 0 12px;font-size:24px}
+    .quiz p{font-size:17px;line-height:1.4}
+    .answer-list{display:grid;gap:9px}
+    .answer{
+      width:100%;text-align:left;border:1px solid var(--line);border-radius:11px;padding:11px 12px;
+      color:var(--ink);background:#fff;font-weight:600;
+    }
+    .answer.correct{color:#fff;background:var(--forest);border-color:var(--forest)}
+    .answer.wrong{color:#fff;background:var(--danger);border-color:var(--danger)}
+    .feedback{min-height:24px;margin-top:10px;font-weight:700}
+    .quiz-progress{display:inline-flex;margin-bottom:8px;padding:5px 9px;border-radius:999px;background:#e8f7fb;color:#17667b;font-size:12px;font-weight:800}
+    .quiz-next{display:none;width:100%;margin-top:10px;border:0;border-radius:10px;padding:10px 12px;color:#fff;background:var(--lake);font-weight:700}
+    .materials p{color:var(--muted);font-size:15px;line-height:1.45}
+    .folder-list{display:grid;gap:8px;margin-top:12px}
+    .folder{padding:10px;border-radius:10px;background:#f1f8f5;font-size:14px;font-weight:700}
+    .bottom-nav{display:flex;justify-content:space-between;gap:10px;margin-top:18px;flex-wrap:wrap}
+    .nav-button{border:0;border-radius:11px;padding:11px 15px;color:#fff;background:var(--forest);font-weight:700}
+    .nav-button:disabled{opacity:.45;cursor:not-allowed}
+    [hidden]{display:none!important}
+    .final-screen{
+      margin-top:18px;padding:26px;border-radius:24px;color:#fff;text-align:center;
+      background:linear-gradient(135deg,var(--forest-dark),var(--lake));box-shadow:var(--shadow)
+    }
+    .final-screen h2{margin:6px 0 10px;font-size:clamp(28px,4vw,43px)}
+    .final-screen>p{max-width:760px;margin:0 auto 18px;line-height:1.5;color:rgba(255,255,255,.86)}
+    .final-answers{display:grid;gap:10px;max-width:760px;margin:auto}
+    .final-answer{border:1px solid rgba(255,255,255,.35);border-radius:13px;padding:13px;text-align:left;color:#fff;background:rgba(255,255,255,.12);font-weight:700}
+    .final-answer.correct{background:#23845f;border-color:#a8f0cf}
+    .final-answer.wrong{background:#a53e38;border-color:#ffc5c0}
+    .final-message{min-height:32px;margin-top:14px;font-size:18px;font-weight:800}
+    .restart-button{margin-top:10px;border:0;border-radius:11px;padding:11px 16px;color:#382500;background:var(--gold);font-weight:800}
+    @media(max-width:900px){.intro,.content-grid{grid-template-columns:1fr}.guide{order:2}.map{order:1}}
+    @media(max-width:650px){
+      .route-shell{padding:12px}.topbar{padding:14px}.map{padding:16px;min-height:470px}
+      .stops{grid-template-columns:repeat(5,90px);overflow-x:auto;margin-top:112px;padding:12px 4px 28px}.route-line{display:none}
+      .map-caption{font-size:12px}.detail h2{font-size:25px}
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><h1>Зеренда на ладони</h1><p>Интерактивный маршрут из пяти остановок</p></div>
+    <div class="top-actions"><a href="index.html">Вернуться к стенду</a><button type="button" id="fullButton">На весь экран</button></div>
+  </header>
+
+  <main class="route-shell">
+    <section class="intro">
+      <aside class="guide">
+        <span class="eyebrow">Виртуальные навигаторы</span>
+        <div class="avatars">
+          <div class="avatar active" data-avatar="1"><span>Дарья</span><img src="assets/avatars/girl-1.png" alt="Первая конкурсантка" onerror="this.remove()"></div>
+          <div class="avatar" data-avatar="2"><span>Арина</span><img src="assets/avatars/girl-2.png" alt="Вторая конкурсантка" onerror="this.remove()"></div>
+        </div>
+        <h2 id="guideName">Исследователь</h2>
+        <div class="speech" id="speech" aria-live="polite"></div>
+        <small>Навигатор меняется при выборе остановки. При добавлении фотографий они автоматически заменят инициалы.</small>
+      </aside>
+
+      <section class="map" aria-label="Схема маршрута по Зеренде">
+        <div class="map-heading"><h2>От «От легенды Балғадиша до жемчужины Зеренды</h2><p>Выберите остановку на схеме</p></div>
+        <div class="route-line" aria-hidden="true"></div>
+        <div class="stops">
+          <button class="stop active" type="button" data-key="balkadisha"><span class="pin"><span>♪</span></span><span class="stop-name">Балғадиша</span></button>
+          <button class="stop" type="button" data-key="museum"><span class="pin"><span>М</span></span><span class="stop-name">Краеведческий музей</span></button>
+          <button class="stop" type="button" data-key="ilyasov"><span class="pin"><span>→</span></span><span class="stop-name">улица Ильясова</span></button>
+          <button class="stop" type="button" data-key="gabdullin"><span class="pin"><span>★</span></span><span class="stop-name">памятник Ғабдуллину</span></button>
+          <button class="stop" type="button" data-key="lake"><span class="pin"><span>≈</span></span><span class="stop-name">Озеро "Зеренді"</span></button>
+        </div>
+        <div class="map-caption"><span>Интерактивная схема маршрута по Зеренде</span><strong id="progress">1 из 5</strong></div>
+      </section>
+    </section>
+
+    <section class="content-grid">
+      <article class="detail">
+        <div class="detail-head"><div><span class="eyebrow" id="stopLabel">Остановка 1</span><h2 id="stopTitle"></h2></div><span class="number" id="stopNumber">01</span></div>
+        <p id="stopText"></p>
+        <div class="media-tabs">
+          <button class="media-tab active" type="button" data-media="cover">Фото</button>
+          <button class="media-tab" type="button" data-media="video">Видео</button>
+          <button class="media-tab" type="button" data-media="audio">Аудио</button>
+          <button class="media-tab" type="button" data-media="document">Источник</button>
+        </div>
+        <div class="media-box" id="mediaBox" aria-live="polite"></div>
+        <label class="file-preview">Проверить собственный файл<input id="fileInput" type="file" accept="image/*,video/*,audio/*,.pdf"></label>
+        <div class="bottom-nav"><button class="nav-button" id="prevButton" type="button">← Назад</button><button class="nav-button" id="nextButton" type="button">Следующая остановка →</button></div>
+      </article>
+
+      <aside class="side-stack">
+        <section class="quiz">
+          <span class="eyebrow">Проверь себя</span>
+          <h2>Вопросы остановки</h2>
+          <span class="quiz-progress" id="questionNumber">Вопрос 1 из 2</span>
+          <p id="question"></p>
+          <div class="answer-list" id="answers"></div>
+          <div class="feedback" id="feedback" aria-live="polite"></div>
+          <button class="quiz-next" id="nextQuestionButton" type="button">Следующий вопрос →</button>
+        </section>
+        <section class="materials">
+          <span class="eyebrow">Локальные материалы</span>
+          <h2>Работает без интернета</h2>
+          <p>Поместите файлы в папку выбранной остановки под указанными названиями:</p>
+          <div class="folder-list"><div class="folder">cover.jpg — фотография</div><div class="folder">video.mp4 — ролик</div><div class="folder">audio.mp3 — голос</div><div class="folder">source.pdf — источник</div></div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="final-screen" id="finalScreen" hidden>
+      <span class="eyebrow" style="color:#ffd978">Финал маршрута</span>
+      <h2>Главный вопрос: «Адал азамат»</h2>
+      <p>Мы познакомились с историей, людьми и природой Зеренды. Теперь определите, как эти знания связаны с поступками ответственного гражданина.</p>
+      <div class="final-answers" id="finalAnswers"></div>
+      <div class="final-message" id="finalMessage" aria-live="polite"></div>
+      <button class="restart-button" id="restartButton" type="button">Пройти маршрут ещё раз</button>
+    </section>
+  </main>
+
+  <script src="content.js"></script>
+  <script>
+    const data = window.ROUTE_DATA || {};
+    const keys = ['balkadisha','museum','ilyasov','gabdullin','lake'];
+    let currentKey = keys[0];
+    let currentMedia = 'cover';
+    let currentQuestion = 0;
+    const correctAnswers = new Set();
+    const $ = selector => document.querySelector(selector);
+    const $$ = selector => [...document.querySelectorAll(selector)];
+
+    function placeholder(type,path){
+      const labels={cover:['▧','Фотография объекта'],video:['▶','Видеоролик'],audio:['♫','Запись голоса'],document:['▤','Документ или источник']};
+      const [icon,title]=labels[type];
+      $('#mediaBox').innerHTML=`<div class="media-placeholder"><span class="icon">${icon}</span><strong>${title}</strong><p>Добавьте файл <b>${path}</b>. До этого места показывается заглушка.</p></div>`;
+    }
+    function showMedia(type){
+      currentMedia=type;
+      $$('.media-tab').forEach(button=>button.classList.toggle('active',button.dataset.media===type));
+      const item=data[currentKey];
+      const path=item[type];
+      const box=$('#mediaBox');
+      if(type==='cover') box.innerHTML=`<img src="${path}" alt="${item.title}" onerror="this.parentElement.dataset.failed='1';this.remove()">`;
+      if(type==='video') box.innerHTML=`<video src="${path}" controls onerror="this.parentElement.dataset.failed='1';this.remove()"></video>`;
+      if(type==='audio') box.innerHTML=`<audio src="${path}" controls onerror="this.parentElement.dataset.failed='1';this.remove()"></audio>`;
+      if(type==='document') box.innerHTML=`<embed src="${path}" type="application/pdf">`;
+      box.removeAttribute('data-failed');
+      setTimeout(()=>{if(box.dataset.failed==='1'||!box.firstElementChild)placeholder(type,path)},250);
+    }
+    function drawQuiz(item){
+      const quiz=item.questions[currentQuestion];
+      $('#questionNumber').textContent=`Вопрос ${currentQuestion+1} из ${item.questions.length}`;
+      $('#question').textContent=quiz.text;
+      $('#feedback').textContent='';
+      $('#answers').innerHTML='';
+      $('#nextQuestionButton').style.display='none';
+      quiz.answers.forEach((answer,index)=>{
+        const button=document.createElement('button');button.type='button';button.className='answer';button.textContent=answer;
+        button.addEventListener('click',()=>{
+          [...$('#answers').querySelectorAll('.answer')].forEach(b=>b.disabled=true);
+          if(index===quiz.correct){
+            button.classList.add('correct');
+            correctAnswers.add(`${currentKey}-${currentQuestion}`);
+            $('#feedback').textContent='Верно! Отличная работа.';
+          } else {
+            button.classList.add('wrong');
+            $('#answers').querySelectorAll('.answer')[quiz.correct].classList.add('correct');
+            $('#feedback').textContent='Посмотрите правильный ответ и постарайтесь его запомнить.';
+          }
+          if(currentQuestion<item.questions.length-1)$('#nextQuestionButton').style.display='block';
+        });
+        $('#answers').appendChild(button);
+      });
+    }
+    function selectStop(key){
+      currentKey=key;const item=data[key];const index=keys.indexOf(key);
+      $$('.stop').forEach(button=>button.classList.toggle('active',button.dataset.key===key));
+      $('#stopLabel').textContent=`Остановка ${item.order}`;$('#stopTitle').textContent=item.title;$('#stopText').textContent=item.text;
+      $('#stopNumber').textContent=String(item.order).padStart(2,'0');$('#progress').textContent=`${item.order} из 5`;
+      $('#speech').textContent=item.speech;$('#guideName').textContent=item.avatar===1?'Исследователь':'Навигатор';
+      $$('.avatar').forEach(avatar=>avatar.classList.toggle('active',Number(avatar.dataset.avatar)===item.avatar));
+      $('#prevButton').disabled=index===0;
+      $('#nextButton').disabled=false;
+      $('#nextButton').textContent=index===keys.length-1?'Итоговый вопрос →':'Следующая остановка →';
+      currentQuestion=0;
+      drawQuiz(item);showMedia('cover');
+    }
+    $$('.stop').forEach(button=>button.addEventListener('click',()=>selectStop(button.dataset.key)));
+    $$('.media-tab').forEach(button=>button.addEventListener('click',()=>showMedia(button.dataset.media)));
+    $('#prevButton').addEventListener('click',()=>{const i=keys.indexOf(currentKey);if(i>0)selectStop(keys[i-1])});
+    $('#nextQuestionButton').addEventListener('click',()=>{const item=data[currentKey];if(currentQuestion<item.questions.length-1){currentQuestion+=1;drawQuiz(item)}});
+    $('#nextButton').addEventListener('click',()=>{
+      const i=keys.indexOf(currentKey);
+      if(i<keys.length-1)selectStop(keys[i+1]);
+      else{$('#finalScreen').hidden=false;drawFinalQuestion();$('#finalScreen').scrollIntoView({behavior:'smooth',block:'start'})}
+    });
+    $('#fileInput').addEventListener('change',event=>{
+      const file=event.target.files[0];if(!file)return;const url=URL.createObjectURL(file);const box=$('#mediaBox');
+      if(file.type.startsWith('image/'))box.innerHTML=`<img src="${url}" alt="Выбранное изображение">`;
+      else if(file.type.startsWith('video/'))box.innerHTML=`<video src="${url}" controls></video>`;
+      else if(file.type.startsWith('audio/'))box.innerHTML=`<audio src="${url}" controls></audio>`;
+      else if(file.type==='application/pdf')box.innerHTML=`<embed src="${url}" type="application/pdf">`;
+      else box.textContent=`Выбран файл: ${file.name}`;
+    });
+    $('#fullButton').addEventListener('click',async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen()}catch(error){alert('Используйте клавишу F11.')}});
+    function drawFinalQuestion(){
+      const final=window.FINAL_QUESTION;
+      $('#finalAnswers').innerHTML='';
+      $('#finalMessage').textContent=final.text;
+      final.answers.forEach((answer,index)=>{
+        const button=document.createElement('button');button.type='button';button.className='final-answer';button.textContent=answer;
+        button.addEventListener('click',()=>{
+          [...$('#finalAnswers').querySelectorAll('.final-answer')].forEach(b=>b.disabled=true);
+          if(index===final.correct){
+            button.classList.add('correct');
+            $('#finalMessage').textContent=`${final.success} Верных ответов на остановках: ${correctAnswers.size} из 10.`;
+          }else{
+            button.classList.add('wrong');
+            $('#finalAnswers').querySelectorAll('.final-answer')[final.correct].classList.add('correct');
+            $('#finalMessage').textContent='Ответственный гражданин не остаётся в стороне: он изучает историю, бережёт наследие и отвечает за свои поступки.';
+          }
+        });
+        $('#finalAnswers').appendChild(button);
+      });
+    }
+    $('#restartButton').addEventListener('click',()=>{correctAnswers.clear();$('#finalScreen').hidden=true;selectStop(keys[0]);window.scrollTo({top:0,behavior:'smooth'})});
+    selectStop(currentKey);
+  </script>
+</body>
+</html>
