@@ -134,42 +134,19 @@
       min-height:280px;border-radius:18px;overflow:hidden;display:grid;place-items:center;text-align:center;
       padding:18px;color:#fff;background:linear-gradient(145deg,#174f45,#1689a0);
     }
-    .media-box img,
-.media-box video {
-  width:100%;
-  max-height:500px;
-  object-fit:contain;
-  border-radius:12px;
-}
-
-.media-box embed {
-  width:100%;
-  height:650px;
-  max-height:none;
-  border-radius:12px;
-  background:white;
-}
-    .media-box audio{
-  width:min(520px,100%)
-}
-
-.media-box embed{
-  width:100%;
-  height:650px;
-  max-height:none;
-  border-radius:12px;
-  background:white;
-}
-
-.media-box:has(embed){
-  min-height:680px;
-  padding:10px;
-}
-
-.media-placeholder{max-width:340px}
-.media-placeholder .icon{font-size:50px;display:block;margin-bottom:8px}
-.media-placeholder strong{font-size:21px}
-.media-placeholder p{margin:7px 0 0;color:rgba(255,255,255,.84);font-size:15px}
+    .media-box img,.media-box video{width:100%;max-height:500px;object-fit:contain;border-radius:12px}
+    .media-box audio{width:min(520px,100%)}
+    .media-box embed{width:100%;height:650px;border:0;border-radius:12px;background:#fff}
+    .media-box:has(embed){min-height:680px;padding:10px}
+    .media-placeholder{max-width:440px}
+    .media-placeholder .icon{font-size:50px;display:block;margin-bottom:8px}
+    .media-placeholder strong{font-size:21px}
+    .media-placeholder p{margin:7px 0 0;color:rgba(255,255,255,.9);font-size:15px}
+    .media-placeholder code{display:inline-block;margin-top:8px;padding:5px 8px;border-radius:7px;background:rgba(0,0,0,.2);color:#fff;word-break:break-all}
+    .file-preview{
+      display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:11px;
+      border-radius:12px;color:#fff;background:var(--forest);font-weight:700;cursor:pointer;
+    }
     .file-preview input{position:absolute;width:1px;height:1px;opacity:0}
     .side-stack{display:grid;gap:18px}
     .quiz,.materials{padding:20px}
@@ -232,14 +209,14 @@
       </aside>
 
       <section class="map" aria-label="Схема маршрута по Зеренде">
-        <div class="map-heading"><h2>От «От легенды Балғадиша до жемчужины Зеренды</h2><p>Выберите остановку на схеме</p></div>
+        <div class="map-heading"><h2>От легенды Балғадиши до жемчужины Зеренды</h2><p>Выберите остановку на схеме</p></div>
         <div class="route-line" aria-hidden="true"></div>
         <div class="stops">
           <button class="stop active" type="button" data-key="balkadisha"><span class="pin"><span>♪</span></span><span class="stop-name">Балғадиша</span></button>
           <button class="stop" type="button" data-key="museum"><span class="pin"><span>М</span></span><span class="stop-name">Краеведческий музей</span></button>
           <button class="stop" type="button" data-key="ilyasov"><span class="pin"><span>→</span></span><span class="stop-name">улица Ильясова</span></button>
           <button class="stop" type="button" data-key="gabdullin"><span class="pin"><span>★</span></span><span class="stop-name">памятник Ғабдуллину</span></button>
-          <button class="stop" type="button" data-key="lake"><span class="pin"><span>≈</span></span><span class="stop-name">Озеро "Зеренді"</span></button>
+          <button class="stop" type="button" data-key="lake"><span class="pin"><span>≈</span></span><span class="stop-name">Озеро Зерендинское</span></button>
         </div>
         <div class="map-caption"><span>Интерактивная схема маршрута по Зеренде</span><strong id="progress">1 из 5</strong></div>
       </section>
@@ -303,7 +280,7 @@
     function placeholder(type,path){
       const labels={cover:['▧','Фотография объекта'],video:['▶','Видеоролик'],audio:['♫','Запись голоса'],document:['▤','Документ или источник']};
       const [icon,title]=labels[type];
-      $('#mediaBox').innerHTML=`<div class="media-placeholder"><span class="icon">${icon}</span><strong>${title}</strong><p>Добавьте файл <b>${path}</b>. До этого места показывается заглушка.</p></div>`;
+      $('#mediaBox').innerHTML=`<div class="media-placeholder"><span class="icon">${icon}</span><strong>${title} пока не добавлен</strong><p>Чтобы материал появился, загрузите файл с точным именем:</p><code>${path}</code></div>`;
     }
     function showMedia(type){
       currentMedia=type;
@@ -311,12 +288,24 @@
       const item=data[currentKey];
       const path=item[type];
       const box=$('#mediaBox');
-      if(type==='cover') box.innerHTML=`<img src="${path}" alt="${item.title}" onerror="this.parentElement.dataset.failed='1';this.remove()">`;
-      if(type==='video') box.innerHTML=`<video src="${path}" controls onerror="this.parentElement.dataset.failed='1';this.remove()"></video>`;
-      if(type==='audio') box.innerHTML=`<audio src="${path}" controls onerror="this.parentElement.dataset.failed='1';this.remove()"></audio>`;
-      if(type==='document') box.innerHTML=`<embed src="${path}" type="application/pdf">`;
-      box.removeAttribute('data-failed');
-      setTimeout(()=>{if(box.dataset.failed==='1'||!box.firstElementChild)placeholder(type,path)},250);
+      box.replaceChildren();
+      if(type==='document'){
+        const showDocument=()=>{const embed=document.createElement('embed');embed.src=path;embed.type='application/pdf';box.replaceChildren(embed)};
+        if(location.protocol==='http:'||location.protocol==='https:'){
+          fetch(path,{method:'HEAD'}).then(response=>response.ok?showDocument():placeholder(type,path)).catch(()=>placeholder(type,path));
+        }else showDocument();
+        return;
+      }
+      const media=document.createElement(type==='cover'?'img':type);
+      media.src=path;
+      if(type==='cover')media.alt=item.title;
+      else{
+        media.controls=true;
+        media.preload='metadata';
+        if(type==='video')media.setAttribute('playsinline','');
+      }
+      media.addEventListener('error',()=>placeholder(type,path),{once:true});
+      box.appendChild(media);
     }
     function drawQuiz(item){
       const quiz=item.questions[currentQuestion];
@@ -348,7 +337,7 @@
       $$('.stop').forEach(button=>button.classList.toggle('active',button.dataset.key===key));
       $('#stopLabel').textContent=`Остановка ${item.order}`;$('#stopTitle').textContent=item.title;$('#stopText').textContent=item.text;
       $('#stopNumber').textContent=String(item.order).padStart(2,'0');$('#progress').textContent=`${item.order} из 5`;
-      $('#speech').textContent=item.speech;$('#guideName').textContent=item.avatar===1?'Исследователь':'Навигатор';
+      $('#speech').textContent=item.speech;$('#guideName').textContent=item.avatar===1?'Дарья — навигатор':'Арина — навигатор';
       $$('.avatar').forEach(avatar=>avatar.classList.toggle('active',Number(avatar.dataset.avatar)===item.avatar));
       $('#prevButton').disabled=index===0;
       $('#nextButton').disabled=false;
